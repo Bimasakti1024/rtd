@@ -1,6 +1,5 @@
 # RTD
 
----
 
 Random Things Downloader
 
@@ -10,7 +9,7 @@ RTD is powered by a federated network of static-hosted repos. Anyone can host on
 
 
 ## Quickstart
----
+
 Here is how to add a repository:
 ```bash
 rtd repository add <URL>
@@ -37,8 +36,6 @@ The pull subcommand have a flag called `max-depth` which will set the maximum de
 
 ## How it works
 
----
-
 First, The user will add a repository and then synchronize their local repository and the server repository. When they pull, it will search for a set random repository and then will open and read it, After that, rtd will choose a random line which will be either a reward or a url to another repository.
 
 If a repository contain a url to another repository, It will get the another repository and then it will search for a random line, And it will repeat.
@@ -48,8 +45,6 @@ The first repository in this project is: https://gist.githubusercontent.com/Bima
 
 
 ## Creating your own repository
-
----
 
 Creating your own repository is really simple, You just need:
 
@@ -72,6 +67,6 @@ Nested https://gist.githubusercontent.com/Bimasakti1024/c05d38ef8b93b8fd7dfb8619
 ```
 
 ## License
----
+
 MIT
 
