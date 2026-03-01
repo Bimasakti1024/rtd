@@ -36,7 +36,8 @@ The pull subcommand have a flag called `max-depth` which will set the maximum de
 
 ### Migrating from RTD
 This project was previously known as RTD. To migrate, update your binary name from `rtd` to `randl`. Your existing repos list at `~/.config/rtd/` will need to be moved to `~/.config/randl/`.
-I did not know there were other CLI tools called RTD, so I decided to rename it to randl.
+
+I did not know there were other CLI tools called RTD, To avoid conflict, I decided to rename it to randl.
 
 ## How it works
 
