@@ -14,6 +14,7 @@ Here is how to add a repository:
 ```bash
 randl repository add <URL>
 ```
+The first repository in this project is: https://gist.githubusercontent.com/Bimasakti1024/c05d38ef8b93b8fd7dfb861977dd48e7/raw/37589e33d1547038c4c69e4c9fd796644c73071b/randl-repo.txt
 And to remove a repository:
 ```bash
 randl repository remove <URL>
@@ -41,13 +42,15 @@ I did not know there were other CLI tools called RTD, To avoid conflict, I decid
 
 ## How it works
 
-First, The user will add a repository and then synchronize their local repository and the server repository. When they pull, it will search for a set random repository and then will open and read it, After that, randl will choose a random line which will be either a reward or a url to another repository.
+1. Add & sync
+Add a repository URL and sync it locally. This downloads the repo index to your machine.
 
-If a repository contain a url to another repository, It will get the another repository and then it will search for a random line, And it will repeat.
+2. Pull
+randl picks a random repository from your local index, then picks a random line from it.
 
-The first repository in this project is: https://gist.githubusercontent.com/Bimasakti1024/c05d38ef8b93b8fd7dfb861977dd48e7/raw/37589e33d1547038c4c69e4c9fd796644c73071b/randl-repo.txt
-
-
+3. Reward or nested?
+- If the line is a URL → you get that file as your reward.
+- If the line starts with `Nested` → randl fetches that repo and picks a random line from it, repeating until it hits a reward.
 
 ## Creating your own repository
 
