@@ -6,7 +6,7 @@ use std::path::PathBuf;
 pub fn get_config_dir() -> PathBuf {
     let dir = config_dir()
         .expect("Could not find configuration directory.")
-        .join("rtd");
+        .join("randl");
 
     if !dir.exists() {
         fs::create_dir_all(&dir).expect("Failed to create config directory");

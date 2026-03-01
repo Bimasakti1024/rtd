@@ -2,7 +2,7 @@
 use clap::{Parser, Subcommand, Args};
 
 #[derive(Parser)]
-#[command(name = "rtd", about = "Random Things Downloader")]
+#[command(name = "randl", about = "Random Downloader")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,

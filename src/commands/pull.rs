@@ -29,7 +29,7 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if repo_files.is_empty() {
-        eprintln!("No repositories synced. Run: rtd repository sync");
+        eprintln!("No repositories synced. Run: randl repository sync");
         return Ok(());
     }
 
@@ -129,7 +129,7 @@ fn filename_from_url(url: &str) -> String {
     path.split('/')
         .last()
         .filter(|s| !s.is_empty())
-        .unwrap_or("rtd-reward")
+        .unwrap_or("randl-reward")
         .to_string()
 }
 

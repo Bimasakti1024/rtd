@@ -1029,6 +1029,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
 
 [[package]]
+name = "randl"
+version = "0.1.0"
+dependencies = [
+ "asky",
+ "clap",
+ "dirs",
+ "fs2",
+ "rand",
+ "reqwest",
+ "size",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1102,19 +1115,6 @@ dependencies = [
  "libc",
  "untrusted",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "rtd"
-version = "0.1.0"
-dependencies = [
- "asky",
- "clap",
- "dirs",
- "fs2",
- "rand",
- "reqwest",
- "size",
 ]
 
 [[package]]
