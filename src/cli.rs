@@ -2,7 +2,7 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "randl", about = "Random Downloader")]
+#[command(name = "randl", about = "Random Downloader powered by a federated network of static-hosted repositories.")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -14,6 +14,7 @@ pub enum Commands {
     Pull(PullArgs),
 
     /// Manage repositories
+    #[command(alias = "repo")]
     Repository {
         #[command(subcommand)]
         action: RepositoryAction,
@@ -33,6 +34,22 @@ pub struct PullArgs {
     /// Toggle dry run
     #[arg(short, long, default_value_t = false)]
     pub dry_run: bool,
+
+    /// Toggle confirmation before downloading
+    #[arg(short, long, default_value_t = false)]
+    pub no_confirm: bool,
+
+    /// Repeat pull
+    #[arg(short, long, default_value_t = 1)]
+    pub repeat: u16,
+
+    /// Download timeout
+    #[arg(short, long, default_value_t = 30)]
+    pub timeout: u64,
+
+    /// Pull from a repository without adding
+    #[arg(short, long)]
+    pub from: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -46,6 +63,9 @@ pub enum RepositoryAction {
     /// List all repositories
     List,
 
-    /// Synchronize all repositories
-    Sync,
+    /// Synchronize a repository (all repository by default)
+    Sync { url: Vec<String> },
+
+    /// Check dead repository
+    Check,
 }

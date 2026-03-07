@@ -10,7 +10,8 @@ pub fn run(action: RepositoryAction) -> Result<(), Box<dyn std::error::Error>> {
         RepositoryAction::Add { url } => add(url),
         RepositoryAction::Remove { url } => remove(url),
         RepositoryAction::List => list(),
-        RepositoryAction::Sync => sync(),
+        RepositoryAction::Sync { url } => sync(url),
+        RepositoryAction::Check => check(),
     }
 }
 
@@ -72,56 +73,109 @@ fn list() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 // function handler for command sync
-fn sync() -> Result<(), Box<dyn std::error::Error>> {
-    let repos_file = get_repos_file();
-    if !repos_file.exists() {
-        println!("No repositories added yet.");
-        return Ok(());
+fn sync(url: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+    let mut repos: Vec<String> = Vec::new();
+    if !url.is_empty() {
+        for single_url in url {
+            repos.push(single_url);
+        }
+    } else {
+        let repos_file = get_repos_file();
+        if !repos_file.exists() {
+            println!("No repositories added yet.");
+            return Ok(());
+        }
+        repos = read_to_string(repos_file)?
+            .lines()
+            .map(String::from)
+            .collect::<Vec<String>>();
     }
 
     let mut success = 0;
     let mut error = 0;
-    let repos = read_to_string(repos_file)?;
     let sync_dir = get_sync_dir();
 
-    for line in repos.lines() {
-        if line.is_empty() {
+    for url in &repos {
+        if url.is_empty() {
             continue;
         }
 
-        print!("Syncing {}: ", line);
-        let content = match reqwest::blocking::get(line) {
+        println!("Syncing {}...", url);
+        let content = match reqwest::blocking::get(url) {
             Ok(response) => match response.error_for_status() {
                 Ok(r) => match r.text() {
                     Ok(text) => text,
                     Err(e) => {
-                        eprintln!("Failed to read response from {}: {}.", line, e);
+                        eprintln!(" Failed to read response from {}: {}.", url, e);
                         error += 1;
                         continue;
                     }
                 },
                 Err(e) => {
-                    eprintln!("Failed to fetch {}: {}.", line, e);
+                    eprintln!(" Failed to fetch {}: {}.", url, e);
                     error += 1;
                     continue;
                 }
             },
             Err(e) => {
-                eprintln!("Failed to fetch {}: {}.", line, e);
+                eprintln!(" Failed to fetch {}: {}.", url, e);
                 error += 1;
                 continue;
             }
         };
 
         // turn URL into a safe filename
-        let filename = line.replace("https://", "").replace("/", "_");
+        let filename = url.replace("https://", "").replace("/", "_");
         let dest = sync_dir.join(filename);
 
         write(dest, content)?;
         success += 1;
-        println!("Ok.");
+        println!("  Ok.");
     }
 
     println!("{} Repository synced and {} failed.", success, error);
+    Ok(())
+}
+
+// function handler for command check
+fn check() -> Result<(), Box<dyn std::error::Error>> {
+    let repos_file = get_repos_file();
+    let repos: Vec<String> = read_to_string(repos_file)?
+        .lines()
+        // Trim empty line
+        .filter(|l| !l.trim().is_empty())
+        .map(|s| s.to_string())
+        .collect();
+
+    if repos.is_empty() {
+        println!("No repository found.");
+        return Ok(())
+    }
+    println!("Found {} repositories.", repos.len());
+
+    let mut alive = 0;
+    let mut dead = 0;
+    for url in repos {
+        println!("Checking: {}", url);
+        match reqwest::blocking::Client::new().head(&url).send() {
+            Ok(response) => match response.error_for_status() {
+                Ok(_) => {
+                    println!("  Alive");
+                    alive += 1;
+                }
+                Err(e) => {
+                    eprintln!("  Dead: {}", e);
+                    dead += 1;
+                }
+            },
+            Err(e) => {
+                eprintln!("  Unreachable: {}", e);
+                dead += 1;
+            }
+        }
+        alive += 1;
+        println!(" Repository okay.");
+    }
+    println!("Checking done:\n Alive: {}\n Dead: {}", alive, dead);
     Ok(())
 }

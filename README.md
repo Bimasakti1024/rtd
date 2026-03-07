@@ -30,7 +30,10 @@ Before you can pull, You need to synchronize the repository using:
 ```bash
 randl repository sync
 ```
+You could also run `randl repo` instead of `randl repository` as a shortcut.
+
 Here is how to pull from a repository:
+
 ```bash
 randl pull
 ```

@@ -6,6 +6,7 @@ use size::Size;
 use std::fs::{self, File, read_to_string};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use crate::cli::PullArgs;
 use crate::config::get_sync_dir;
@@ -17,6 +18,35 @@ enum FollowResult {
 }
 
 pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
+    // if the form flag is provided an argument
+    if let Some(ref url) = args.from {
+        println!("Pulling from: {}", url);
+
+        let client = Client::builder()
+        .timeout(Duration::from_secs(args.timeout))
+        .build()?;
+        let repos = fetch_lines(&client, &url)?;
+        for _ in 1..=args.repeat {
+            loop {
+                match follow(&repos, &client, &args, 1) {
+                    FollowResult::Done => break,
+                    FollowResult::Retry => continue,
+                    FollowResult::Error(e) => {
+                        eprintln!("Error: {}", e);
+                        if args.no_confirm {
+                            continue;
+                        }
+                        if Confirm::new("Continue? ").prompt()? {
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(())
+    }
     println!("Loading repositories...");
 
     let mut repo_files: Vec<PathBuf> = Vec::new();
@@ -33,6 +63,7 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    println!("Selecting...");
     let mut rng = rand::rng();
     let repo_path = repo_files
         .choose(&mut rng)
@@ -53,14 +84,25 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let client = Client::new();
-    loop {
-        match follow(&repos, &client, &args, 1) {
-            FollowResult::Done => break,
-            FollowResult::Retry => continue,
-            FollowResult::Error(e) => {
-                eprintln!("Error: {}", e);
-                break;
+    let client = Client::builder()
+        .timeout(Duration::from_secs(args.timeout))
+        .build()?;
+    for _ in 1..=args.repeat {
+        loop {
+            match follow(&repos, &client, &args, 1) {
+                FollowResult::Done => break,
+                FollowResult::Retry => continue,
+                FollowResult::Error(e) => {
+                    eprintln!("Error: {}", e);
+                    if args.no_confirm {
+                        continue;
+                    }
+                    if Confirm::new("Continue? ").prompt()? {
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
             }
         }
     }
@@ -72,6 +114,7 @@ fn follow(repos: &[String], client: &Client, args: &PullArgs, current_depth: u32
     let max_depth = args.max_depth;
     if current_depth > max_depth && max_depth > 0 {
         eprintln!("Max depth reached.");
+        if args.no_confirm { return FollowResult::Retry }
         return match Confirm::new("Retry?").prompt() {
             Ok(true) => FollowResult::Retry,
             Ok(false) => FollowResult::Done,
@@ -88,12 +131,12 @@ fn follow(repos: &[String], client: &Client, args: &PullArgs, current_depth: u32
     match line.splitn(2, ' ').collect::<Vec<_>>().as_slice() {
         [url] => {
             // Attempt download if not dry run
+            println!("Reward: {}.", filename_from_url(url));
             if args.dry_run {
-                println!("Reward: {}.", filename_from_url(url));
                 println!("Reward is not downloaded because it is a dry run.");
                 FollowResult::Done
             } else {
-                match download(url, client, args.output_directory.as_path()) {
+                match download(url, client, args.output_directory.as_path(), args.no_confirm) {
                     Ok(_) => FollowResult::Done,
                     Err(e) => {
                         // Distinguish user cancellation from real errors
@@ -148,6 +191,7 @@ fn download(
     url: &str,
     client: &Client,
     output_dir: &Path,
+    no_confirm: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let output_path = output_dir.join(filename_from_url(url));
     let output_filename = output_path
@@ -164,19 +208,20 @@ fn download(
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse().ok());
 
-    match size {
-        Some(s) => println!(
-            "  File: {}\n  Size: {}",
-            output_filename,
-            Size::from_bytes(s)
-        ),
-        None => println!("  File: {}\n  Size: unknown", output_filename),
-    }
+    if !no_confirm {
+        match size {
+            Some(s) => println!(
+                "  File: {}\n  Size: {}",
+                output_filename,
+                Size::from_bytes(s)
+            ),
+            None => println!("  File: {}\n  Size: unknown", output_filename),
+        }
 
-    if !Confirm::new("Download this reward?").prompt()? {
-        return Err("cancelled".into());
+        if !Confirm::new("Download this reward?").prompt()? {
+            return Err("cancelled".into());
+        }
     }
-
     let mut response = client.get(url).send()?.error_for_status()?;
     let mut file = File::create(&output_path)?;
 
