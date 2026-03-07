@@ -19,7 +19,7 @@ clap = { version = "4", features = ["derive"] }
 dirs = "6.0.0"
 fs2 = "0.4.3"
 rand = "0.10.0"
-reqwest = { version = "0.12", features = ["blocking"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 size = "0.5.0"
 
 # The profile that 'dist' will build with
