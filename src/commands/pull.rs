@@ -25,7 +25,7 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         let client = Client::builder()
         .timeout(Duration::from_secs(args.timeout))
         .build()?;
-        let repos = fetch_lines(&client, &url)?;
+        let repos = fetch_lines(&client, url)?;
         for _ in 1..=args.repeat {
             loop {
                 match follow(&repos, &client, &args, 1) {
