@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.0] - 2026
+## [0.3.0] - 2026-03-07
 ### Added
 - `repo` alias for `repository` subcommand
 - `--no-confirm` flag to skip confirmation before downloading
