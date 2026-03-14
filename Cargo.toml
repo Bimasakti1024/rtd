@@ -7,6 +7,7 @@ edition = "2024"
 rust-version = "1.87.0"
 license = "MIT"
 repository = "https://github.com/Bimasakti1024/randl"
+readme = "README.md"
 
 [package.metadata.wix]
 upgrade-guid = "9E18FF7D-8949-450E-BAE2-F5798E7CDF49"
