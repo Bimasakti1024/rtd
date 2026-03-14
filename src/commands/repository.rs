@@ -1,7 +1,7 @@
 // src/commands/repository.rs
 use crate::cli::RepositoryAction;
 use crate::config::{get_config_file, get_sync_dir, get_toml_config};
-use std::fs::{write, remove_file};
+use std::fs::{remove_file, write};
 
 pub fn run(action: RepositoryAction) -> Result<(), Box<dyn std::error::Error>> {
     match action {
@@ -14,15 +14,15 @@ pub fn run(action: RepositoryAction) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /*
-    The function handler for the add subcommand,
-    Parameter:
-        - name: name of the repository
-        - url: url of the repository
-    
-    It will first get the configuration toml
-    and then add the url as a repository under the
-    received name with it enabled by default.
- */
+   The function handler for the add subcommand,
+   Parameter:
+       - name: name of the repository
+       - url: url of the repository
+
+   It will first get the configuration toml
+   and then add the url as a repository under the
+   received name with it enabled by default.
+*/
 fn add(name: String, url: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut doc: toml::Value = get_toml_config();
 
@@ -43,9 +43,9 @@ fn add(name: String, url: String) -> Result<(), Box<dyn std::error::Error>> {
     function handler for remove subcommand
     parameters:
         - name: the name of the repository
-    
+
     It will parse the configuration first, then
-    it will remove the selected repository and 
+    it will remove the selected repository and
     will write it to the configuration file again.
     After writing it to the configuration file, it will
     remove the repository cache (at the sync/ directory).
@@ -53,7 +53,7 @@ fn add(name: String, url: String) -> Result<(), Box<dyn std::error::Error>> {
 fn remove(name: String, keep_cache: bool) -> Result<(), Box<dyn std::error::Error>> {
     let mut doc: toml::Value = get_toml_config();
 
-    /* 
+    /*
         if keep_cache does not provided
         it will use the configuration as a fallback
     */
@@ -83,7 +83,7 @@ fn remove(name: String, keep_cache: bool) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
-/* 
+/*
     function handler for subcommand list
     It will read the repositories and then print
     it out
@@ -142,7 +142,7 @@ fn sync_repo(name: String, url: String) -> Result<(), Box<dyn std::error::Error>
     function handler for subcommand sync
     parameters:
         - names: an optional argument for targetted synchronization
-    It will iterate all repository (or only selected one) and will 
+    It will iterate all repository (or only selected one) and will
     synchronize it using the sync_repo(name, url) function
 */
 fn sync(names: Vec<String>) -> Result<(), Box<dyn std::error::Error>> {

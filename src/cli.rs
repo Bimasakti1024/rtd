@@ -2,7 +2,10 @@
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "randl", about = "Random Downloader powered by a federated network of static-hosted repositories.")]
+#[command(
+    name = "randl",
+    about = "Random Downloader powered by a federated network of static-hosted repositories."
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -60,7 +63,7 @@ pub enum RepositoryAction {
         name: String,
 
         /// url of the repository
-        url: String
+        url: String,
     },
 
     /// Remove a repository
@@ -81,4 +84,53 @@ pub enum RepositoryAction {
 
     /// Check dead repository
     Check,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_pull_defaults() {
+        let cli = Cli::parse_from(["randl", "pull"]);
+        match cli.command {
+            Commands::Pull(args) => {
+                assert!(!args.dry_run);
+                assert!(!args.no_confirm);
+                assert!(args.repeat.is_none());
+            }
+            _ => panic!("wrong command"),
+        }
+    }
+
+    #[test]
+    fn test_repo_add() {
+        let cli = Cli::parse_from(["randl", "repo", "add", "repo1", "https://example.com"]);
+        match cli.command {
+            Commands::Repository { action } => match action {
+                RepositoryAction::Add { name, url } => {
+                    assert_eq!(name, "repo1");
+                    assert_eq!(url, "https://example.com");
+                }
+                _ => panic!("wrong action"),
+            },
+            _ => panic!("wrong command"),
+        }
+    }
+
+    #[test]
+    fn test_repo_targetted_sync() {
+        let cli = Cli::parse_from(["randl", "repo", "sync", "repo1", "repo2"]);
+        match cli.command {
+            Commands::Repository { action } => match action {
+                RepositoryAction::Sync { name } => {
+                    assert_eq!(name[0], "repo1");
+                    assert_eq!(name[1], "repo2");
+                }
+                _ => panic!("wrong action"),
+            },
+            _ => panic!("wrong command"),
+        }
+    }
 }

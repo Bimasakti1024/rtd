@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-alpha.2] - 2026-03-14
+### Added
+- unit tests for CLI argument parsing
+- unit tests for filename_from_url
+
 ## [1.0.0-alpha.1] - 2026-03-13
 ### Changed
 - `repo.txt` is now deprecated and will start using `config.toml`

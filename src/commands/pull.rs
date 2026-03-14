@@ -1,6 +1,10 @@
 // src/commands/pull.rs
 use asky::Confirm;
 use figment::providers::Format;
+use figment::{
+    Figment,
+    providers::{Serialized, Toml},
+};
 use rand::prelude::*;
 use reqwest::blocking::Client;
 use size::Size;
@@ -8,7 +12,6 @@ use std::fs::{File, read_to_string};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::time::Duration;
-use figment::{Figment, providers::{Toml, Serialized}};
 
 use crate::cli::PullArgs;
 use crate::config::{Config, get_config_file, get_sync_dir};
@@ -31,10 +34,8 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         println!("Pulling from: {}", url);
 
         let client = Client::builder()
-        .timeout(Duration::from_secs(
-            conf_ref.timeout
-        ))
-        .build()?;
+            .timeout(Duration::from_secs(conf_ref.timeout))
+            .build()?;
         let repos = fetch_lines(&client, url)?;
         for _ in 1..=conf_ref.repeat {
             loop {
@@ -55,17 +56,14 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        return Ok(())
+        return Ok(());
     }
     println!("Loading repositories...");
 
     let repos = &config.repositories;
     let mut rng = rand::rng();
 
-    let enabled: Vec<_> = repos
-        .iter()
-        .filter(|(_, data)| data.enabled)
-        .collect();
+    let enabled: Vec<_> = repos.iter().filter(|(_, data)| data.enabled).collect();
 
     if enabled.is_empty() {
         eprintln!("No enabled repositories.");
@@ -119,7 +117,9 @@ fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32
     let max_depth = conf_ref.max_depth;
     if current_depth > max_depth && max_depth > 0 {
         println!("Max depth reached.");
-        if conf_ref.no_confirm { return FollowResult::Retry }
+        if conf_ref.no_confirm {
+            return FollowResult::Retry;
+        }
         return match Confirm::new("Retry?").prompt() {
             Ok(true) => FollowResult::Retry,
             Ok(false) => FollowResult::Done,
@@ -141,7 +141,12 @@ fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32
                 println!("Reward is not downloaded because it is a dry run.");
                 FollowResult::Done
             } else {
-                match download(url, client, conf_ref.output_directory.as_path(), conf_ref.no_confirm) {
+                match download(
+                    url,
+                    client,
+                    conf_ref.output_directory.as_path(),
+                    conf_ref.no_confirm,
+                ) {
                     Ok(_) => FollowResult::Done,
                     Err(e) => {
                         // Distinguish user cancellation from real errors
@@ -257,4 +262,24 @@ fn download(
 
     println!("\rSaved to {}", output_filename);
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use crate::commands::pull::filename_from_url;
+
+    #[test]
+    fn filename_from_url_test() {
+        assert_eq!(filename_from_url("https://example.com/test"), "test");
+    }
+
+    #[test]
+    fn test_filename_from_url_trailing_slash() {
+        assert_eq!(filename_from_url("https://example.com/"), "randl-reward");
+    }
+
+    #[test]
+    fn test_filename_from_url_no_path() {
+        assert_eq!(filename_from_url("https://example.com"), "example.com");
+    }
 }
