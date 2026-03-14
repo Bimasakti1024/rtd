@@ -6,12 +6,12 @@ use figment::{
     providers::{Serialized, Toml},
 };
 use rand::prelude::*;
-use reqwest::blocking::Client;
 use size::Size;
 use std::fs::{File, read_to_string};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::time::Duration;
+use ureq::Agent;
 
 use crate::cli::PullArgs;
 use crate::config::{Config, get_config_file, get_sync_dir};
@@ -33,13 +33,15 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(ref url) = args.from {
         println!("Pulling from: {}", url);
 
-        let client = Client::builder()
-            .timeout(Duration::from_secs(conf_ref.timeout))
-            .build()?;
-        let repos = fetch_lines(&client, url)?;
+        let agent: Agent = Agent::config_builder()
+            .timeout_global(Some(Duration::from_secs(conf_ref.timeout)))
+            .build()
+            .into();
+
+        let repos = fetch_lines(&agent, url)?;
         for _ in 1..=conf_ref.repeat {
             loop {
-                match follow(&repos, &client, &config, 1) {
+                match follow(&repos, &agent, &config, 1) {
                     FollowResult::Done => break,
                     FollowResult::Retry => continue,
                     FollowResult::Error(e) => {
@@ -86,12 +88,13 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(conf_ref.timeout))
-        .build()?;
+    let agent: Agent = Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(conf_ref.timeout)))
+        .build()
+        .into();
     for _ in 1..=conf_ref.repeat {
         loop {
-            match follow(&repos, &client, &config, 1) {
+            match follow(&repos, &agent, &config, 1) {
                 FollowResult::Done => break,
                 FollowResult::Retry => continue,
                 FollowResult::Error(e) => {
@@ -112,7 +115,7 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32) -> FollowResult {
+fn follow(repos: &[String], agent: &Agent, config: &Config, current_depth: u32) -> FollowResult {
     let conf_ref = &config.configuration;
     let max_depth = conf_ref.max_depth;
     if current_depth > max_depth && max_depth > 0 {
@@ -143,7 +146,7 @@ fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32
             } else {
                 match download(
                     url,
-                    client,
+                    agent,
                     conf_ref.output_directory.as_path(),
                     conf_ref.no_confirm,
                 ) {
@@ -163,8 +166,8 @@ fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32
         }
         ["Nested", url] => {
             // Fetch nested repo and recurse
-            match fetch_lines(client, url) {
-                Ok(nested) => follow(&nested, client, config, current_depth + 1),
+            match fetch_lines(agent, url) {
+                Ok(nested) => follow(&nested, agent, config, current_depth + 1),
                 Err(e) => FollowResult::Error(e),
             }
         }
@@ -176,10 +179,8 @@ fn follow(repos: &[String], client: &Client, config: &Config, current_depth: u32
     }
 }
 
-fn fetch_lines(client: &Client, url: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let mut response = client.get(url).send()?.error_for_status()?;
-    let mut content = String::new();
-    response.read_to_string(&mut content)?;
+fn fetch_lines(agent: &ureq::Agent, url: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let content = agent.get(url).call()?.body_mut().read_to_string()?;
     Ok(content
         .lines()
         .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
@@ -199,7 +200,7 @@ fn filename_from_url(url: &str) -> String {
 
 fn download(
     url: &str,
-    client: &Client,
+    agent: &Agent,
     output_dir: &Path,
     no_confirm: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -211,7 +212,7 @@ fn download(
         .to_string();
 
     // HEAD request to get file size
-    let head = client.head(url).send()?;
+    let head = agent.head(url).call()?;
     let size: Option<u64> = head
         .headers()
         .get("content-length")
@@ -232,7 +233,7 @@ fn download(
             return Err("cancelled".into());
         }
     }
-    let mut response = client.get(url).send()?.error_for_status()?;
+    let mut response = agent.get(url).call()?;
     let mut file = File::create(&output_path)?;
 
     println!("Downloading {}...", output_filename);
@@ -241,8 +242,10 @@ fn download(
     let mut bytes_written: u64 = 0;
     let mut last_reported = 0u64;
 
+    let mut reader = response.body_mut().as_reader();
+
     loop {
-        let n = response.read(&mut buffer)?;
+        let n = reader.read(&mut buffer)?;
         if n == 0 {
             break;
         }

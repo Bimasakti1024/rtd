@@ -80,10 +80,21 @@ pub enum RepositoryAction {
     List,
 
     /// Synchronize a repository (all repository by default)
-    Sync { name: Vec<String> },
+    Sync {
+        /// Names of the repository to sync (targetted)
+        name: Vec<String>,
+
+        /// Timeout
+        #[arg(short, long)]
+        timeout: Option<u64>,
+    },
 
     /// Check dead repository
-    Check,
+    Check {
+        /// Timeout
+        #[arg(short, long)]
+        timeout: Option<u64>,
+    },
 }
 
 #[cfg(test)]
@@ -121,12 +132,13 @@ mod test {
 
     #[test]
     fn test_repo_targetted_sync() {
-        let cli = Cli::parse_from(["randl", "repo", "sync", "repo1", "repo2"]);
+        let cli = Cli::parse_from(["randl", "repo", "sync", "repo1", "repo2", "--timeout", "10"]);
         match cli.command {
             Commands::Repository { action } => match action {
-                RepositoryAction::Sync { name } => {
+                RepositoryAction::Sync { name, timeout } => {
                     assert_eq!(name[0], "repo1");
                     assert_eq!(name[1], "repo2");
+                    assert_eq!(timeout, Some(10 as u64));
                 }
                 _ => panic!("wrong action"),
             },
