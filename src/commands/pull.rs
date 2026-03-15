@@ -10,11 +10,10 @@ use size::Size;
 use std::fs::{File, read_to_string};
 use std::io::{self, Read, Write};
 use std::path::Path;
-use std::time::Duration;
 use ureq::Agent;
 
 use crate::cli::PullArgs;
-use crate::config::{Config, get_config_file, get_sync_dir};
+use crate::config::{Config, create_agent, get_config_file, get_sync_dir};
 
 enum FollowResult {
     Done,
@@ -28,15 +27,11 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         .merge(Serialized::defaults(&args))
         .extract()?;
     let conf_ref = &config.configuration;
+    let agent = create_agent(Some(conf_ref.timeout));
 
     // if the form flag is provided an argument
     if let Some(ref url) = args.from {
         println!("Pulling from: {}", url);
-
-        let agent: Agent = Agent::config_builder()
-            .timeout_global(Some(Duration::from_secs(conf_ref.timeout)))
-            .build()
-            .into();
 
         let repos = fetch_lines(&agent, url)?;
         for _ in 1..=conf_ref.repeat {
@@ -88,10 +83,6 @@ pub fn run(args: PullArgs) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let agent: Agent = Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(conf_ref.timeout)))
-        .build()
-        .into();
     for _ in 1..=conf_ref.repeat {
         loop {
             match follow(&repos, &agent, &config, 1) {

@@ -1,8 +1,7 @@
 // src/commands/repository.rs
 use crate::cli::RepositoryAction;
-use crate::config::{get_config_file, get_sync_dir, get_toml_config};
+use crate::config::{create_agent, get_config_file, get_sync_dir, get_toml_config};
 use std::fs::{remove_file, write};
-use std::time::Duration;
 use ureq::Agent;
 
 pub fn run(action: RepositoryAction) -> Result<(), Box<dyn std::error::Error>> {
@@ -163,7 +162,13 @@ fn sync(names: Vec<String>, timeout: Option<u64>) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-// function handler for command check
+/*
+    function handler for subcommand check
+    parameters:
+        - timeout: timeout to check in seconds
+    it will iterate all repositories and then check
+    if it is alive or dead
+*/
 fn check(timeout: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
     let doc: toml::Value = get_toml_config();
     let mut alive = 0;
@@ -190,21 +195,4 @@ fn check(timeout: Option<u64>) -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Checking done:\n Alive: {}\n Dead: {}", alive, dead);
     Ok(())
-}
-
-fn create_agent(t: Option<u64>) -> Agent {
-    let timeout = t.unwrap_or_else(|| {
-        get_toml_config()
-            .as_table()
-            .and_then(|doc| doc["configuration"].as_table())
-            .and_then(|conf| conf["timeout"].as_integer())
-            .unwrap_or(30)
-            .try_into()
-            .unwrap_or(30)
-    });
-
-    Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(timeout)))
-        .build()
-        .into()
 }

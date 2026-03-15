@@ -1,10 +1,10 @@
 [package]
 name = "randl"
-version = "1.0.0-alpha.1"
+version = "1.0.0-alpha.3"
 authors = ["Bimasakti"]
 description = "A gacha-style random file downloader powered by a federated network of static-hosted repositories."
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.85.0"
 license = "MIT"
 repository = "https://github.com/Bimasakti1024/randl"
 readme = "README.md"
